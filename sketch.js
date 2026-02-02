@@ -7,8 +7,21 @@ let currentLeftPattern="satin";
 let currentRightPattern="tabby"; //pick from structures
 // set left or right tile with name
 
+let choiceGrid=[];
+
 function setup(){
   createCanvas(cols*cellSize,rows*cellSize);
+  buildChoiceGrid();
+}
+
+function buildChoiceGrid(){
+  choiceGrid=[];
+  for(let i=0;i<rows;i++){
+    choiceGrid[i]=[];
+    for(let j=0;j<cols;j++){
+      choiceGrid[i][j]=Math.random();
+    }
+  }
 }
 
 function preload(){
@@ -20,7 +33,6 @@ function draw(){
     return;
   }
 
-  randomSeed(12345);
   background(215);
   
   let leftPattern=structures.patterns[currentLeftPattern];
@@ -33,6 +45,8 @@ function draw(){
       let x=j*cellSize;
       let y=i*cellSize;
       let cellValue=0; // start cell as white
+      let r=choiceGrid[i][j];
+
       if (i<leftPattern.length && j<leftW) { // generate left pattern
         cellValue=leftPattern[i][j];
       }
@@ -48,7 +62,7 @@ function draw(){
       let t3Start=leftW+2*tileW;
       if(i<leftPattern.length && j>=t1Start && j<t2Start){ // generate tile 1 pattern
         let tile1Col=j-t1Start;
-        if(random()<0.75){
+        if(r<0.75){
           cellValue=leftPattern[i][tile1Col];
         }
         else{
@@ -57,7 +71,7 @@ function draw(){
       }
       if(i<leftPattern.length && j>=t2Start && j<t3Start){ // generate tile 2 pattern
         let tile2Col=j-t2Start;
-        if(random()<0.5){
+        if(r<0.5){
           cellValue=leftPattern[i][tile2Col];
         }
         else{
@@ -66,7 +80,7 @@ function draw(){
       }
       if(i<leftPattern.length && j>=t3Start && j<rightStart){ // generate tile 3 pattern
         let tile3Col=j-t3Start;
-        if(random()<0.25){
+        if(r<0.25){
           cellValue=leftPattern[i][tile3Col];
         }
         else{
