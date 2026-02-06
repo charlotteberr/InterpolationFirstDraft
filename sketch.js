@@ -9,7 +9,8 @@ let currentRightPattern="random"; //pick from structures
 
 let choiceGrid=[];
 
-let leftInput, rightInput, helpText;
+let leftInput, rightInput, middleInput, helpText;
+let middleLengthValue=18; // default middle area width in columns
 
 function setup(){
   createCanvas(cols*cellSize,rows*cellSize);
@@ -24,8 +25,13 @@ function setup(){
   rightInput.position(200, height + 40);
   rightInput.input(updatePatterns);
 
+  createP("Middle length (columns):").position(390, height + 5);
+  middleInput = createInput(String(middleLengthValue));
+  middleInput.position(390, height + 40);
+  middleInput.input(updateMiddleLength);
+
   helpText = createP("Possible patterns: (loading...)"); // list of pattern names
-  helpText.position(10, height + 60);
+  helpText.position(10, height + 70);
 
 
   buildChoiceGrid();
@@ -55,6 +61,24 @@ function updatePatterns(){
   if (structures && structures.patterns[rightName]) {
     currentRightPattern = rightName;
   }
+
+  if (structures) {
+    updateMiddleLength();
+  }
+}
+
+function updateMiddleLength(){
+  let v = parseInt(middleInput.value(), 10);
+  if (Number.isFinite(v) && v >= 0) {
+    middleLengthValue = v;
+  }
+  if (structures) {
+    let leftW = structures.patterns[currentLeftPattern][0].length;
+    let rightW = structures.patterns[currentRightPattern][0].length;
+    cols = leftW + rightW + middleLengthValue;
+    resizeCanvas(cols*cellSize, rows*cellSize);
+    buildChoiceGrid();
+  }
 }
 
 function draw(){
@@ -72,7 +96,8 @@ function draw(){
   let leftPattern=structures.patterns[currentLeftPattern];
   let rightPattern=structures.patterns[currentRightPattern]; 
   let leftW=leftPattern[0].length;
-  let rightW=rightPattern[0].length; 
+  let rightW=rightPattern[0].length;
+  let rightStart=cols-rightW; 
   
   for(let i=0;i<rows;i++){
     for(let j=0;j<cols;j++){
@@ -81,46 +106,46 @@ function draw(){
       let cellValue=0; // start cell as white
       let r=choiceGrid[i][j];
 
-      if (i<leftPattern.length && j<leftW) { // generate left pattern
+      let middleLength=rightStart-leftW;
+      let tileW=leftW;
+      let tileCount=Math.floor(middleLength/tileW);
+      let remainder=middleLength%tileW;
+      let remainderStart=leftW+Math.floor((middleLength-remainder)/2);
+      let remainderEnd=remainderStart+remainder;
+
+      if (i<leftPattern.length && j<leftW) {
         cellValue=leftPattern[i][j];
-      }
-      let rightStart=cols-rightW; // generate right pattern
-      if (i<rightPattern.length && j>=rightStart) {
+      } else if (i<rightPattern.length && j>=rightStart) {
         let rightCol=j-rightStart;
         cellValue=rightPattern[i][rightCol];
-      }
-      let middleLength=rightStart-leftW;
-      let tileW=Math.floor(middleLength/3);
-      let t1Start=leftW;
-      let t2Start=leftW+tileW;
-      let t3Start=leftW+2*tileW;
-      if(i<leftPattern.length && j>=t1Start && j<t2Start){ // generate tile 1 pattern
-        let tile1Col=j-t1Start;
-        if(r<0.75){
-          cellValue=leftPattern[i][tile1Col];
+      } else if (j>=leftW && j<rightStart) {
+        // middle area only
+        if(remainder>0 && i<leftPattern.length && j>=remainderStart && j<remainderEnd){
+          let tileCol=j-remainderStart;
+          if(r<0.5){
+            cellValue=leftPattern[i][tileCol];
+          }
+          else{
+            cellValue=rightPattern[i][tileCol];
+          }
         }
-        else{
-          cellValue=rightPattern[i][tile1Col];
-        }
-      }
-      if(i<leftPattern.length && j>=t2Start && j<t3Start){ // generate tile 2 pattern
-        let tile2Col=j-t2Start;
-        if(r<0.5){
-          cellValue=leftPattern[i][tile2Col];
-        }
-        else{
-          cellValue=rightPattern[i][tile2Col];
-        }
-      }
-      if(i<leftPattern.length && j>=t3Start && j<rightStart){ // generate tile 3 pattern
-        let tile3Col=j-t3Start;
-        if(r<0.25){
-          cellValue=leftPattern[i][tile3Col];
-        }
-        else{
-          cellValue=rightPattern[i][tile3Col];
+        else if(tileCount>0 && i<leftPattern.length){
+          let tileIndex=Math.floor((j-leftW)/tileW);
+          let probLeft=0.5;
+          if(tileCount>1){
+            probLeft=1-(tileIndex/(tileCount-1));
+          }
+          probLeft=constrain(probLeft, 0.1, 0.9);
+          let tileCol=j-(leftW+tileIndex*tileW);
+          if(r<probLeft){
+            cellValue=leftPattern[i][tileCol];
+          }
+          else{
+            cellValue=rightPattern[i][tileCol];
+          }
         }
       }
+
       if (cellValue===1){
         fill(0);
         stroke(255);
