@@ -60,10 +60,6 @@ function updatePatterns(){
   if (structures && structures.patterns[rightName]) {
     currentRightPattern=rightName;
   }
-
-  if (structures){
-    updateMiddleLength();
-  }
 }
 
 function updateMiddleLength(){
@@ -110,19 +106,33 @@ function draw(){
       let fullTileCount=Math.floor(middleLength/tileW);
       let leftTileCount=Math.floor(fullTileCount/2);
       let rightTileCount=fullTileCount-leftTileCount;
-      let remainder=middleLength-(leftTileCount+rightTileCount)*tileW;
+      let remainder=middleLength%tileW;
       let remainderStart=leftW+(leftTileCount*tileW);
       let remainderEnd=remainderStart+remainder;
 
-      if (i<leftPattern.length && j<leftW){
+      if (i<leftPattern.length && j<leftW){  // left pattern
         cellValue=leftPattern[i][j];
       } 
-      else if (i<rightPattern.length && j>=rightStart){
+      else if (i<rightPattern.length && j>=rightStart){ // right pattern
         let rightCol=j-rightStart;
         cellValue=rightPattern[i][rightCol];
       }
       else if (j>=leftW && j<rightStart){ // middle area only
-        if(remainder>0 && i<leftPattern.length && j>=remainderStart && j<remainderEnd){
+        if(i<leftPattern.length && j<remainderStart && leftTileCount>0){
+          let leftTileIndex=Math.floor((j-leftW)/tileW);
+          let leftProb=0.9;
+          if(leftTileCount>1){
+            leftProb=0.9-((leftTileIndex/(leftTileCount-1))*0.4); // 0.9 to 0.5
+          }
+          let tileCol=j-(leftW+(leftTileIndex*tileW));
+          if(r<leftProb){
+            cellValue=leftPattern[i][tileCol];
+          }
+          else{
+            cellValue=rightPattern[i][tileCol];
+          }
+        }
+        else if(remainder>0 && i<leftPattern.length && j>=remainderStart && j<remainderEnd){
           let tileCol=j-remainderStart;
           if(r<0.5){
             cellValue=leftPattern[i][tileCol];
@@ -131,35 +141,21 @@ function draw(){
             cellValue=rightPattern[i][tileCol];
           }
         }
-          else if(i<leftPattern.length && j<remainderStart && leftTileCount>0){
-            let leftTileIndex=Math.floor((j-leftW)/tileW);
-            let leftProb=0.9;
-            if(leftTileCount>1){
-              leftProb=0.9-((leftTileIndex/(leftTileCount-1))*0.4); // 0.9 to 0.5
-            }
-            let tileCol=j-(leftW+(leftTileIndex*tileW));
-            if(r<leftProb){
-              cellValue=leftPattern[i][tileCol];
-            }
-            else{
-              cellValue=rightPattern[i][tileCol];
-            }
+        else if(i<leftPattern.length && j>=remainderEnd && rightTileCount>0){
+          let rightSideStart=remainderEnd;
+          let rightTileIndex=Math.floor((j-rightSideStart)/tileW);
+          let rightProb=0.1;
+          if(rightTileCount>1){
+            rightProb=0.5-(rightTileIndex/((rightTileCount-1))*0.4); // 0.5 to 0.1
           }
-          else if(i<leftPattern.length && j>=remainderEnd && rightTileCount>0){
-            let rightSideStart=remainderEnd;
-            let rightTileIndex=Math.floor((j-rightSideStart)/tileW);
-            let rightProb=0.1;
-            if(rightTileCount>1){
-              rightProb=0.5-(rightTileIndex/((rightTileCount-1))*0.4); // 0.5 to 0.1
-            }
-            let tileCol=j-(rightSideStart+(rightTileIndex*tileW));
-            if(r<rightProb){
-              cellValue=leftPattern[i][tileCol];
-            }
-            else{
-              cellValue=rightPattern[i][tileCol];
-            }
+          let tileCol=j-(rightSideStart+(rightTileIndex*tileW));
+          if(r<rightProb){
+            cellValue=leftPattern[i][tileCol];
           }
+          else{
+            cellValue=rightPattern[i][tileCol];
+          }
+        }
       }
 
       if (cellValue===1){
