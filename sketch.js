@@ -52,30 +52,29 @@ function preload(){
 }
 
 function updatePatterns(){
-  let leftName = leftInput.value().trim();
-  let rightName = rightInput.value().trim();
-
+  let leftName=leftInput.value().trim();
+  let rightName=rightInput.value().trim();
   if (structures && structures.patterns[leftName]) {
-    currentLeftPattern = leftName;
+    currentLeftPattern=leftName;
   }
   if (structures && structures.patterns[rightName]) {
-    currentRightPattern = rightName;
+    currentRightPattern=rightName;
   }
 
-  if (structures) {
+  if (structures){
     updateMiddleLength();
   }
 }
 
 function updateMiddleLength(){
-  let v = parseInt(middleInput.value(), 10);
-  if (Number.isFinite(v) && v >= 0) {
-    middleLengthValue = v;
+  let v=Math.floor(Number(middleInput.value()));
+  if (Number.isFinite(v) && v>=0) {
+    middleLengthValue=v;
   }
-  if (structures) {
-    let leftW = structures.patterns[currentLeftPattern][0].length;
-    let rightW = structures.patterns[currentRightPattern][0].length;
-    cols = leftW + rightW + middleLengthValue;
+  if (structures){
+    let leftW=structures.patterns[currentLeftPattern][0].length;
+    let rightW=structures.patterns[currentRightPattern][0].length;
+    cols=leftW+rightW+middleLengthValue;
     resizeCanvas(cols*cellSize, rows*cellSize);
     buildChoiceGrid();
   }
@@ -108,18 +107,21 @@ function draw(){
 
       let middleLength=rightStart-leftW;
       let tileW=leftW;
-      let tileCount=Math.floor(middleLength/tileW);
-      let remainder=middleLength%tileW;
-      let remainderStart=leftW+Math.floor((middleLength-remainder)/2);
+      let fullTileCount=Math.floor(middleLength/tileW);
+      let leftTileCount=Math.floor(fullTileCount/2);
+      let rightTileCount=fullTileCount-leftTileCount;
+      let remainder=middleLength-(leftTileCount+rightTileCount)*tileW;
+      let remainderStart=leftW+(leftTileCount*tileW);
       let remainderEnd=remainderStart+remainder;
 
-      if (i<leftPattern.length && j<leftW) {
+      if (i<leftPattern.length && j<leftW){
         cellValue=leftPattern[i][j];
-      } else if (i<rightPattern.length && j>=rightStart) {
+      } 
+      else if (i<rightPattern.length && j>=rightStart){
         let rightCol=j-rightStart;
         cellValue=rightPattern[i][rightCol];
-      } else if (j>=leftW && j<rightStart) {
-        // middle area only
+      }
+      else if (j>=leftW && j<rightStart){ // middle area only
         if(remainder>0 && i<leftPattern.length && j>=remainderStart && j<remainderEnd){
           let tileCol=j-remainderStart;
           if(r<0.5){
@@ -129,21 +131,35 @@ function draw(){
             cellValue=rightPattern[i][tileCol];
           }
         }
-        else if(tileCount>0 && i<leftPattern.length){
-          let tileIndex=Math.floor((j-leftW)/tileW);
-          let probLeft=0.5;
-          if(tileCount>1){
-            probLeft=1-(tileIndex/(tileCount-1));
+          else if(i<leftPattern.length && j<remainderStart && leftTileCount>0){
+            let leftTileIndex=Math.floor((j-leftW)/tileW);
+            let leftProb=0.9;
+            if(leftTileCount>1){
+              leftProb=0.9-((leftTileIndex/(leftTileCount-1))*0.4); // 0.9 to 0.5
+            }
+            let tileCol=j-(leftW+(leftTileIndex*tileW));
+            if(r<leftProb){
+              cellValue=leftPattern[i][tileCol];
+            }
+            else{
+              cellValue=rightPattern[i][tileCol];
+            }
           }
-          probLeft=constrain(probLeft, 0.1, 0.9);
-          let tileCol=j-(leftW+tileIndex*tileW);
-          if(r<probLeft){
-            cellValue=leftPattern[i][tileCol];
+          else if(i<leftPattern.length && j>=remainderEnd && rightTileCount>0){
+            let rightSideStart=remainderEnd;
+            let rightTileIndex=Math.floor((j-rightSideStart)/tileW);
+            let rightProb=0.1;
+            if(rightTileCount>1){
+              rightProb=0.5-(rightTileIndex/((rightTileCount-1))*0.4); // 0.5 to 0.1
+            }
+            let tileCol=j-(rightSideStart+(rightTileIndex*tileW));
+            if(r<rightProb){
+              cellValue=leftPattern[i][tileCol];
+            }
+            else{
+              cellValue=rightPattern[i][tileCol];
+            }
           }
-          else{
-            cellValue=rightPattern[i][tileCol];
-          }
-        }
       }
 
       if (cellValue===1){
