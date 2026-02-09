@@ -9,8 +9,9 @@ let currentRightPattern="random"; //pick from structures
 
 let choiceGrid=[];
 
-let leftInput, rightInput, middleInput, helpText;
+let leftInput, rightInput, middleInput, interpInput, helpText;
 let middleLengthValue=18; // default middle area width in columns
+let interpPercent=50;
 
 function setup(){
   createCanvas(cols*cellSize,rows*cellSize);
@@ -29,6 +30,11 @@ function setup(){
   middleInput = createInput(String(middleLengthValue));
   middleInput.position(390, height + 40);
   middleInput.input(updateMiddleLength);
+
+  createP("Interpolation %:").position(600, height + 5);
+  interpInput = createInput(String(interpPercent));
+  interpInput.position(600, height + 40);
+  interpInput.input(updateInterpolation);
 
   helpText = createP("Possible patterns: (loading...)"); // list of pattern names
   helpText.position(10, height + 70);
@@ -62,9 +68,22 @@ function updatePatterns(){
   }
 }
 
+function updateInterpolation(){
+  let v=Math.floor(Number(interpInput.value()));
+  if(v<0){
+    v=0;
+  }
+  if(v>100){
+    v=100;
+  }
+  else{
+    interpPercent=v;
+  }
+}
+
 function updateMiddleLength(){
   let v=Math.floor(Number(middleInput.value()));
-  if (Number.isFinite(v) && v>=0) {
+  if (v>=0) {
     middleLengthValue=v;
   }
   if (structures){
@@ -104,7 +123,7 @@ function draw(){
       let middleLength=rightStart-leftW;
       let tileW=leftW;
       let fullTileCount=Math.floor(middleLength/tileW);
-      let leftTileCount=Math.floor(fullTileCount/2);
+      let leftTileCount=Math.round(fullTileCount*(interpPercent/100));
       let rightTileCount=fullTileCount-leftTileCount;
       let remainder=middleLength%tileW;
       let remainderStart=leftW+(leftTileCount*tileW);
