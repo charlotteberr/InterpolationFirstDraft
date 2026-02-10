@@ -139,17 +139,30 @@ function draw(){
       }
       else if (j>=leftW && j<rightStart){ 
         if(i<leftPattern.length && j<remainderStart && leftTileCount>0){  // left tiles before remainder
-          let leftTileIndex=Math.floor((j-leftW)/tileW);  // gives which left tile your in
-          // ex. tiles are 6 columns wide, if youre 8 columns in youre in 2nd left tile, index 1
+          let leftTileIndex=Math.floor((j-leftW)/tileW);  // gives which left tile your in, ex. tiles are 6 columns wide, if youre 8 columns in youre in 2nd left tile, index 1
           let leftProb=0.9;
-          if(leftTileCount>1){
-            leftProb=0.9-((leftTileIndex/(leftTileCount-1))*0.4); // tileIndex/(tileCount-1) gives number from 0-1 (ex .25, .5)
-            // multiplied by 0.4 then subtracted from 0.9 gives probability from 90% to 50% of left pattern before remainder
+          if(interpPercent>=65 && leftTileCount>=2){  // Left tiles broken up into 70/30 to make probability grow at different rates to show zones better
+            let left1Count=Math.round(leftTileCount*0.7);
+            let left2Count=leftTileCount-left1Count;
+            if(leftTileIndex<left1Count){
+              leftProb=0.9-((leftTileIndex/(left1Count-1))*0.2); // 0.9 to 0.7
+            // leftTileIndex-(left1Count-1) gives number from 0-1
+            // multiplied by 0.2 then subtracted from 0.9 gives probability from 90% to 70% of left pattern before remainder
             // every tile has its own probability, but each cell in that tile is evaluated seperatly running that probabilty again
+            }
+            else{
+              let secondIndex=leftTileIndex-left1Count;
+              leftProb=0.7-((secondIndex/(left2Count-1))*0.2); // 0.7 to 0.5
+            }
           }
-          let tileCol=j-(leftW+(leftTileIndex*tileW)); // make number of column your in match number of column in structures.json so you can read those 2D array patterns in
+          else{
+            if(leftTileCount>1){
+              leftProb=0.9-((leftTileIndex/(leftTileCount-1))*0.4); // 0.9 to 0.5
+            }
+          }
+          let tileCol=j-(leftW+(leftTileIndex*tileW)); // map to pattern column
           if(r<leftProb){
-            cellValue=leftPattern[i][tileCol];  // use choice grid r and leftProb to run probability for each cell
+            cellValue=leftPattern[i][tileCol];
           }
           else{
             cellValue=rightPattern[i][tileCol];
@@ -168,8 +181,21 @@ function draw(){
           let rightSideStart=remainderEnd;
           let rightTileIndex=Math.floor((j-rightSideStart)/tileW);
           let rightProb=0.1;
-          if(rightTileCount>1){
-            rightProb=0.5-((rightTileIndex/(rightTileCount-1))*0.4); // 0.5 to 0.1
+          if(interpPercent<=35 && rightTileCount>=2){
+            let right2Count=Math.round(rightTileCount*0.7);
+            let right1Count=rightTileCount-right2Count;
+            if(rightTileIndex<right1Count){
+              rightProb=0.5-((rightTileIndex/(right1Count-1))*0.2); // 0.5 to 0.3
+            }
+            else{
+              let secondIndex=rightTileIndex-right1Count;
+              rightProb=0.3-((secondIndex/(right2Count-1))*0.2); // 0.3 to 0.1
+            }
+          }
+          else{
+            if(rightTileCount>1){
+              rightProb=0.5-((rightTileIndex/(rightTileCount-1))*0.4); // 0.5 to 0.1
+            }
           }
           let tileCol=j-(rightSideStart+(rightTileIndex*tileW));
           if(r<rightProb){
@@ -180,7 +206,6 @@ function draw(){
           }
         }
       }
-
       if (cellValue===1){
         fill(0);
         stroke(255);
