@@ -143,7 +143,7 @@ function draw(){
           // ex. tiles are 6 columns wide, if youre 8 columns in youre in 2nd left tile, index 1
           let leftProb=0.9;
           if(leftTileCount>1){
-            leftProb=0.9-((leftTileIndex/(leftTileCount-1))*0.4); // tileIndex/(tileCount-1) gives number from 0-1
+            leftProb=0.9-((leftTileIndex/(leftTileCount-1))*0.4); // tileIndex/(tileCount-1) gives number from 0-1 (ex .25, .5)
             // multiplied by 0.4 then subtracted from 0.9 gives probability from 90% to 50% of left pattern before remainder
             // every tile has its own probability, but each cell in that tile is evaluated seperatly running that probabilty again
           }
