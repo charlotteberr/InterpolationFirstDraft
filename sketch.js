@@ -156,7 +156,10 @@ function draw(){
             }
           }
           else{
-            if(leftTileCount>1){
+            if(leftTileCount===1){
+              leftProb=0.5;
+            }
+            else{
               leftProb=0.9-((leftTileIndex/(leftTileCount-1))*0.4); // 0.9 to 0.5
             }
           }
@@ -193,7 +196,10 @@ function draw(){
             }
           }
           else{
-            if(rightTileCount>1){
+            if(rightTileCount===1){
+              rightProb=0.5;
+            }
+            else{
               rightProb=0.5-((rightTileIndex/(rightTileCount-1))*0.4); // 0.5 to 0.1
             }
           }
