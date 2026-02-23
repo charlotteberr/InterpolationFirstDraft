@@ -6,16 +6,10 @@ let structures;
 let currentLeftPattern="random";
 let currentRightPattern="random";
 
-let choiceGrid=[];
-let copyGrid=[];
-
 let leftLabel, rightLabel, middleLabel, interpLabel;
-let leftInput, rightInput, middleInput, interpInput, whiteSmoothCheckbox, blackSmoothCheckbox, helpText;
-let middleTileCount=3; // default number of middle tiles
+let leftInput, rightInput, middleInput, interpInput, helpText;
+let middleTileCount=3;
 let interpPercent=50;
-let smoothInterp=false;
-let whiteSmooth=false;
-let blackSmooth=false;
 
 function setup(){
   createCanvas(cols*cellSize,rows*cellSize);
@@ -39,7 +33,6 @@ function setup(){
   helpText = createP("Possible patterns: (loading...)");
 
   updateControlPositions();
-  buildChoiceGrid();
   updateMiddleLength();
 }
 
@@ -75,34 +68,14 @@ function lcm(a,b){
 function repeatPatternToSize(pattern,targetH,targetW){
   let patternH=pattern.length;
   let patternW=pattern[0].length;
-  let out=[];
+  let output=[];
   for(let i=0;i<targetH;i++){
-    out[i]=[];
+    output[i]=[];
     for(let j=0;j<targetW;j++){
-      out[i][j]=pattern[i%patternH][j%patternW];
+      output[i][j]=pattern[i%patternH][j%patternW];
     }
   }
-  return out;
-}
-
-function buildChoiceGrid(){
-  choiceGrid=[];
-  for(let i=0;i<rows;i++){
-    choiceGrid[i]=[];
-    for(let j=0;j<cols;j++){
-      choiceGrid[i][j]=Math.random();
-    }
-  }
-}
-
-function buildCopyGrid(){
-  copyGrid=[];
-  for(let i=0;i<rows;i++){
-    copyGrid[i]=[];
-    for(let j=0;j<cols;j++){
-      copyGrid[i][j]=0;
-    }
-  }
+  return output;
 }
 
 function preload(){
@@ -135,24 +108,24 @@ function updateInterpolation(){
 }
 
 function updateMiddleLength(){
-  let v=Math.floor(Number(middleInput.value()));
+  let value=Math.floor(Number(middleInput.value()));
   if (structures){
     let leftPattern=structures.patterns[currentLeftPattern];
     let rightPattern=structures.patterns[currentRightPattern];
     let commonW=lcm(leftPattern[0].length,rightPattern[0].length);
     let commonH=lcm(leftPattern.length,rightPattern.length);
-    if (Number.isNaN(v) || v<1){
-      v=1;
+    if(Number.isNaN(value) || value<1){
+      value=1;
     }
-    middleTileCount=v;
+    middleTileCount=value;
     middleInput.value(String(middleTileCount));
     rows=commonH;
     cols=commonW+commonW+(middleTileCount*commonW);
     resizeCanvas(cols*cellSize, rows*cellSize);
     updateControlPositions();
-    buildChoiceGrid();
-  } else if (v>=1) {
-    middleTileCount=v;
+  } 
+  else if (value>=1) {
+    middleTileCount=value;
   }
 }
 
@@ -168,19 +141,15 @@ function draw(){
 
   background(215);
 
-  let leftPatternRaw=structures.patterns[currentLeftPattern];
-  let rightPatternRaw=structures.patterns[currentRightPattern];
-  let commonW=lcm(leftPatternRaw[0].length,rightPatternRaw[0].length);
-  let commonH=lcm(leftPatternRaw.length,rightPatternRaw.length);
-  let leftPattern=repeatPatternToSize(leftPatternRaw,commonH,commonW);
-  let rightPattern=repeatPatternToSize(rightPatternRaw,commonH,commonW);
-
+  let leftPatternOrg=structures.patterns[currentLeftPattern];
+  let rightPatternOrg=structures.patterns[currentRightPattern];
+  let commonW=lcm(leftPatternOrg[0].length,rightPatternOrg[0].length);
+  let commonH=lcm(leftPatternOrg.length,rightPatternOrg.length);
+  let leftPattern=repeatPatternToSize(leftPatternOrg,commonH,commonW);
+  let rightPattern=repeatPatternToSize(rightPatternOrg,commonH,commonW);
   let rightStart=cols-commonW;
   let tileCount=Math.floor((rightStart-commonW)/commonW);
-  let center = (interpPercent / 100) * (tileCount - 1);
-
-
-  buildCopyGrid();
+  let center=(interpPercent/100)*(tileCount - 1);
 
   for(let i=0;i<rows;i++){
     for(let j=0;j<cols;j++){
@@ -188,53 +157,47 @@ function draw(){
 
       if (i<leftPattern.length && j<commonW){
         cellValue=leftPattern[i][j];
-        copyGrid[i][j]=cellValue;
       }
       else if (i<rightPattern.length && j>=rightStart){
         let rightCol=j-rightStart;
         cellValue=rightPattern[i][rightCol];
-        copyGrid[i][j]=cellValue;
       }
       else if (j>=commonW && j<rightStart){
         let middleCol=j-commonW;
         let tileIndex=Math.floor(middleCol/commonW);
         let colInTile=middleCol%commonW;
-
-        let dist=Math.floor(Math.abs(tileIndex-center));
+        let distance=Math.floor(Math.abs(tileIndex-center));
         let isLeftSide=tileIndex<center;
-        let isRightSide=tileIndex>center;
-        
-        let k=2+dist;
-        let useOpposite=((colInTile+1)%k===0);
+        let isRightSide=tileIndex>center; 
+        let stripeSpacing=2+distance;
+        let useOpposite=((colInTile+1)%stripeSpacing===0);
 
         let useLeftPattern=false;
-        if (!isLeftSide && !isRightSide){
+        if(!isLeftSide && !isRightSide){
           useLeftPattern=(colInTile%2===0);
-        } else if (isLeftSide){
+        }
+        else if(isLeftSide){
           useLeftPattern=!useOpposite;
-        } else {
+        }
+        else{
           useLeftPattern=useOpposite;
         }
 
-        if (useLeftPattern){
+        if(useLeftPattern){
           cellValue=leftPattern[i][colInTile];
-        } else {
+        }
+        else{
           cellValue=rightPattern[i][colInTile];
         }
-        copyGrid[i][j]=cellValue;
       }
-    }
-  }
 
-  for(let i=0;i<rows;i++){
-    for(let j=0;j<cols;j++){
       let x=j*cellSize;
       let y=i*cellSize;
-      if (copyGrid[i][j]===1){
+      if(cellValue===1){
         fill(0);
         stroke(255);
       }
-      else {
+      else{
         fill(255);
         stroke(0);
       }
