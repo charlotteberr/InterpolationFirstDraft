@@ -1,58 +1,88 @@
 let rows=6;
 let cols=30;
 let cellSize=20;
+const uiTop=10;
+const canvasTop=165;
 
 let structures;
-let currentLeftPattern="random";
-let currentRightPattern="random";
+let currentPatternA="random";
+let currentPatternB="random";
+let canvasElement;
 
-let leftLabel, rightLabel, middleLabel, interpLabel;
-let leftInput, rightInput, middleInput, interpInput, helpText;
-let middleTileCount=3;
+let patternALabel, patternBLabel, middleLabel, blendCenterLabel;
+let patternAInput, patternBInput, middleInput, blendCenterInput, verticalCheckbox, helpText, blendCenterHelpText;
+let middleColumnCount=18;
+let middleTileCount=3; // derived helper from column count
 let interpPercent=50;
+let isVertical=false;
 
 function setup(){
-  createCanvas(cols*cellSize,rows*cellSize);
+  canvasElement=createCanvas(cols*cellSize,rows*cellSize);
 
-  leftLabel=createP("Left pattern:");
-  leftInput = createInput(currentLeftPattern);
-  leftInput.input(updatePatterns);
+  patternALabel=createP("Pattern A:");
+  patternAInput = createInput(currentPatternA);
+  patternAInput.input(updatePatterns);
 
-  rightLabel=createP("Right pattern:");
-  rightInput = createInput(currentRightPattern);
-  rightInput.input(updatePatterns);
+  patternBLabel=createP("Pattern B:");
+  patternBInput = createInput(currentPatternB);
+  patternBInput.input(updatePatterns);
 
-  middleLabel=createP("Add middle tiles:");
-  middleInput = createInput(String(middleTileCount));
+  middleLabel=createP("Blend region length (ends):");
+  middleInput = createInput(String(middleColumnCount));
   middleInput.input(updateMiddleLength);
 
-  interpLabel=createP("Interpolation %:");
-  interpInput = createInput(String(interpPercent));
-  interpInput.input(updateInterpolation);
+  blendCenterLabel=createP("Blend center %:");
+  blendCenterInput = createInput(String(interpPercent));
+  blendCenterInput.input(updateInterpolation);
 
+  verticalCheckbox=createCheckbox("Vertical", isVertical);
+  verticalCheckbox.changed(updateVertical);
+
+  blendCenterHelpText=createP("Shift blend center with arrow keys.");
+  blendCenterHelpText.style("border","1px solid #c8c8c8");
+  blendCenterHelpText.style("background","#efefef");
+  blendCenterHelpText.style("padding","4px 8px");
+  blendCenterHelpText.style("font-weight","400");
   helpText = createP("Possible patterns: (loading...)");
 
   updateControlPositions();
   updateMiddleLength();
 }
 
-function updateControlPositions(){
-  leftLabel.position(10, height + 5);
-  leftInput.position(10, height + 40);
-
-  rightLabel.position(200, height + 5);
-  rightInput.position(200, height + 40);
-
-  middleLabel.position(390, height + 5);
-  middleInput.position(390, height + 40);
-
-  interpLabel.position(600, height + 5);
-  interpInput.position(600, height + 40);
-
-  helpText.position(10, height + 70);
+function applyCanvasSize(){
+  if(!isVertical){
+    resizeCanvas(cols*cellSize,rows*cellSize);
+  }
+  else{
+    resizeCanvas(rows*cellSize,cols*cellSize);
+  }
+  updateControlPositions();
 }
 
-function gcd(a,b){
+function updateControlPositions(){
+  helpText.position(10, uiTop);
+  blendCenterHelpText.position(10, uiTop + 35);
+
+  patternALabel.position(10, uiTop + 70);
+  patternAInput.position(10, uiTop + 105);
+
+  patternBLabel.position(200, uiTop + 70);
+  patternBInput.position(200, uiTop + 105);
+
+  middleLabel.position(390, uiTop + 70);
+  middleInput.position(390, uiTop + 105);
+
+  blendCenterLabel.position(600, uiTop + 70);
+  blendCenterInput.position(600, uiTop + 105);
+
+  verticalCheckbox.position(780, uiTop + 105);
+
+  if(canvasElement){
+    canvasElement.position(10, canvasTop);
+  }
+}
+
+function gcd(a,b){      // LCM functions
   while (b!==0){
     let t=b;
     b=a%b;
@@ -65,7 +95,7 @@ function lcm(a,b){
   return Math.abs(a*b)/gcd(a,b);
 }
 
-function repeatPatternToSize(pattern,targetH,targetW){
+function repeatPatternToSize(pattern,targetH,targetW){    // Two different sized functions repeated to fit LCM height and width array
   let patternH=pattern.length;
   let patternW=pattern[0].length;
   let output=[];
@@ -82,20 +112,20 @@ function preload(){
   structures=loadJSON("structures.json");
 }
 
-function updatePatterns(){
-  let leftName=leftInput.value().trim();
-  let rightName=rightInput.value().trim();
-  if (structures && structures.patterns[leftName]) {
-    currentLeftPattern=leftName;
+function updatePatterns(){     // Update patterns with what user picked
+  let patternAName=patternAInput.value().trim();
+  let patternBName=patternBInput.value().trim();
+  if (structures && structures.patterns[patternAName]) {
+    currentPatternA=patternAName;
   }
-  if (structures && structures.patterns[rightName]) {
-    currentRightPattern=rightName;
+  if (structures && structures.patterns[patternBName]) {
+    currentPatternB=patternBName;
   }
   updateMiddleLength();
 }
 
-function updateInterpolation(){
-  let v=Math.floor(Number(interpInput.value()));
+function updateInterpolation(){    // updates interpolation % location
+  let v=Math.floor(Number(blendCenterInput.value()));
   if(v<0){
     v=0;
   }
@@ -105,27 +135,47 @@ function updateInterpolation(){
   else{
     interpPercent=v;
   }
+  blendCenterInput.value(String(interpPercent));
+}
+
+function updateVertical(){
+  isVertical=verticalCheckbox.checked();
+  applyCanvasSize();
 }
 
 function updateMiddleLength(){
   let value=Math.floor(Number(middleInput.value()));
   if (structures){
-    let leftPattern=structures.patterns[currentLeftPattern];
-    let rightPattern=structures.patterns[currentRightPattern];
-    let commonW=lcm(leftPattern[0].length,rightPattern[0].length);
-    let commonH=lcm(leftPattern.length,rightPattern.length);
-    if(Number.isNaN(value) || value<1){
-      value=1;
+    let patternA=structures.patterns[currentPatternA];
+    let patternB=structures.patterns[currentPatternB];
+    let commonW=lcm(patternA[0].length,patternB[0].length);
+    let commonH=lcm(patternA.length,patternB.length);
+    if(Number.isNaN(value) || value<0){
+      value=0;
     }
-    middleTileCount=value;
-    middleInput.value(String(middleTileCount));
+    middleColumnCount=value;
+    middleInput.value(String(middleColumnCount));
+    middleTileCount=Math.floor(middleColumnCount/commonW);
     rows=commonH;
-    cols=commonW+commonW+(middleTileCount*commonW);
-    resizeCanvas(cols*cellSize, rows*cellSize);
-    updateControlPositions();
+    cols=commonW+commonW+middleColumnCount;
+    applyCanvasSize();
   } 
-  else if (value>=1) {
-    middleTileCount=value;
+  else if (value>=0) {
+    middleColumnCount=value;
+  }
+}
+
+function keyPressed(){     // Key pressed functions for interpolation % center
+  if(keyCode===LEFT_ARROW){
+    interpPercent=Math.max(0,interpPercent-10);
+    blendCenterInput.value(String(interpPercent));
+  }
+  if(keyCode===RIGHT_ARROW){
+    if(interpPercent===100){
+      return;
+    }
+    interpPercent=Math.max(0,interpPercent+10);
+    blendCenterInput.value(String(interpPercent));
   }
 }
 
@@ -141,58 +191,75 @@ function draw(){
 
   background(215);
 
-  let leftPatternOrg=structures.patterns[currentLeftPattern];
-  let rightPatternOrg=structures.patterns[currentRightPattern];
-  let commonW=lcm(leftPatternOrg[0].length,rightPatternOrg[0].length);
-  let commonH=lcm(leftPatternOrg.length,rightPatternOrg.length);
-  let leftPattern=repeatPatternToSize(leftPatternOrg,commonH,commonW);
-  let rightPattern=repeatPatternToSize(rightPatternOrg,commonH,commonW);
-  let rightStart=cols-commonW;
-  let tileCount=Math.floor((rightStart-commonW)/commonW);
-  let center=(interpPercent/100)*(tileCount - 1);
+  let patternAOrg=structures.patterns[currentPatternA];
+  let patternBOrg=structures.patterns[currentPatternB];
+  let commonW=lcm(patternAOrg[0].length,patternBOrg[0].length);
+  let commonH=lcm(patternAOrg.length,patternBOrg.length);
+  let patternA=repeatPatternToSize(patternAOrg,commonH,commonW);
+  let patternB=repeatPatternToSize(patternBOrg,commonH,commonW);
+  let patternBStart=cols-commonW;
+  let middleLength=patternBStart-commonW;
+  let fullTileCount=Math.floor(middleLength/commonW);
+  let remainderStart=fullTileCount*commonW;
+  let center=(interpPercent/100)*(fullTileCount - 1);
 
   for(let i=0;i<rows;i++){
     for(let j=0;j<cols;j++){
       let cellValue=0;
 
-      if (i<leftPattern.length && j<commonW){
-        cellValue=leftPattern[i][j];
+      if (i<patternA.length && j<commonW){
+        cellValue=patternA[i][j];
       }
-      else if (i<rightPattern.length && j>=rightStart){
-        let rightCol=j-rightStart;
-        cellValue=rightPattern[i][rightCol];
+      else if (i<patternB.length && j>=patternBStart){
+        let patternBCol=j-patternBStart;
+        cellValue=patternB[i][patternBCol];
       }
-      else if (j>=commonW && j<rightStart){
+      else if (j>=commonW && j<patternBStart){
         let middleCol=j-commonW;
-        let tileIndex=Math.floor(middleCol/commonW);
         let colInTile=middleCol%commonW;
-        let distance=Math.floor(Math.abs(tileIndex-center));
-        let isLeftSide=tileIndex<center;
-        let isRightSide=tileIndex>center; 
-        let stripeSpacing=2+distance;
-        let useOpposite=((colInTile+1)%stripeSpacing===0);
+        let usePatternA=false;
 
-        let useLeftPattern=false;
-        if(!isLeftSide && !isRightSide){
-          useLeftPattern=(colInTile%2===0);
-        }
-        else if(isLeftSide){
-          useLeftPattern=!useOpposite;
+        if(middleCol>=remainderStart){
+          // For remainder columns, alternate A/B until the middle ends.
+          let remainderCol=middleCol-remainderStart;
+          usePatternA=(remainderCol%2===0);
         }
         else{
-          useLeftPattern=useOpposite;
+          let tileIndex=Math.floor(middleCol/commonW);
+          let distance=Math.floor(Math.abs(tileIndex-center));
+          let isPatternASide=tileIndex<center;
+          let isPatternBSide=tileIndex>center; 
+          let stripeSpacing=2+distance;
+          let useOpposite=((colInTile+1)%stripeSpacing===0);
+          if(!isPatternASide && !isPatternBSide){
+            usePatternA=(colInTile%2===0);
+          }
+          else if(isPatternASide){
+            usePatternA=!useOpposite;
+          }
+          else{
+            usePatternA=useOpposite;
+          }
         }
-
-        if(useLeftPattern){
-          cellValue=leftPattern[i][colInTile];
+        
+        if(usePatternA){
+          cellValue=patternA[i][colInTile];
         }
         else{
-          cellValue=rightPattern[i][colInTile];
+          cellValue=patternB[i][colInTile];
         }
       }
-
-      let x=j*cellSize;
-      let y=i*cellSize;
+      let orgX=j*cellSize;
+      let orgY=i*cellSize;
+      let x,y;
+      if(!isVertical){
+        x=orgX;
+        y=orgY;
+      }
+      else{
+        x=orgY;
+        y=orgX;
+      }
       if(cellValue===1){
         fill(0);
         stroke(255);
