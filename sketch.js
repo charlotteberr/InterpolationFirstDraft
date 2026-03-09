@@ -53,7 +53,7 @@ function setup(){
   updateBlendRegionLength();
 }
 
-function applyCanvasSize(){
+function applyCanvasSize(){     // make canvas vertical or horizontal based on isVertical bool
   if(!isVertical){
     resizeCanvas(cols*cellSize,rows*cellSize);
   }
@@ -63,7 +63,7 @@ function applyCanvasSize(){
   updateControlPositions();
 }
 
-function updateControlPositions(){
+function updateControlPositions(){    // put inputs on top of pattern
   helpText.position(10, uiTop);
   blendCenterHelpText.position(10, uiTop + 35);
 
@@ -102,7 +102,7 @@ function lcm(a,b){
   return Math.abs(a*b)/gcd(a,b);
 }
 
-function getAdjustedCommonSize(patternA,patternB){
+function getAdjustedCommonSize(patternA,patternB){    // find LCM and add or subtract the change in pattern size
   let commonW=lcm(patternA[0].length,patternB[0].length);
   let commonH=lcm(patternA.length,patternB.length);
   commonW=commonW+changePatternSize;
@@ -112,7 +112,7 @@ function getAdjustedCommonSize(patternA,patternB){
   return {commonW,commonH};
 }
 
-function repeatPatternToSize(pattern,targetH,targetW){    // Two different sized functions repeated to fit LCM height and width array
+function repeatPatternToSize(pattern,targetH,targetW){    // Two different sized patterns repeated to fit LCM height and width array
   let patternH=pattern.length;
   let patternW=pattern[0].length;
   let output=[];
@@ -194,7 +194,7 @@ function updateBlendRegionLength(){
   }
 }
 
-function keyPressed(){     
+function keyPressed(){     // left and right for blend location. up and down for size
   if(keyCode===LEFT_ARROW){
     blendCenterPercent=Math.max(0,blendCenterPercent-10);
     blendCenterInput.value(String(blendCenterPercent));
@@ -227,29 +227,29 @@ function draw(){
 
   background(215);
 
-  let patternAOrg=structures.patterns[currentPatternA];
+  let patternAOrg=structures.patterns[currentPatternA];  //original patterns
   let patternBOrg=structures.patterns[currentPatternB];
-  let {commonW,commonH}=getAdjustedCommonSize(patternAOrg,patternBOrg);
+  let {commonW,commonH}=getAdjustedCommonSize(patternAOrg,patternBOrg);  // LCM and change pattern size input added
   let patternA=repeatPatternToSize(patternAOrg,commonH,commonW);
   let patternB=repeatPatternToSize(patternBOrg,commonH,commonW);
   let patternBStart=cols-commonW;
   let middleLength=patternBStart-commonW;
-  let fullTileCount=Math.floor(middleLength/commonW);
+  let fullTileCount=Math.floor(middleLength/commonW);   // full tile count and where to put remainder
   let remainderStart=fullTileCount*commonW;
-  let center=(blendCenterPercent/100)*(fullTileCount-1);
+  let center=(blendCenterPercent/100)*(fullTileCount-1);   // find blend center
 
   for(let i=0;i<rows;i++){
     for(let j=0;j<cols;j++){
       let cellValue=0;
 
-      if (j<commonW){
+      if (j<commonW){    // left pattern
         cellValue=patternA[i][j];
       }
-      else if (j>=patternBStart){
+      else if (j>=patternBStart){  // right pattern
         let patternBCol=j-patternBStart;
         cellValue=patternB[i][patternBCol];
       }
-      else if (j>=commonW && j<patternBStart){
+      else if (j>=commonW && j<patternBStart){   // blend region
         let middleCol=j-commonW;
         let colInTile=middleCol%commonW;
         let usePatternA=false;
@@ -260,13 +260,13 @@ function draw(){
         }
         else{
           let tileIndex=Math.floor(middleCol/commonW);
-          let distance=Math.floor(Math.abs(tileIndex-center));
+          let distance=Math.floor(Math.abs(tileIndex-center));  // distance from center
           let isPatternASide=tileIndex<center;
           let isPatternBSide=tileIndex>center; 
-          let stripeSpacing=2+distance;
-          let useOpposite=((colInTile+1)%stripeSpacing===0);
+          let stripeSpacing=2+distance;    // how far from center determines how often to flip. alternating (2) minimum amount
+          let useOpposite=((colInTile+1)%stripeSpacing===0);   // if remainder=0 then switch. dividing by bigger number, less often to switch
           if(!isPatternASide && !isPatternBSide){
-            usePatternA=(colInTile%2===0);
+            usePatternA=(colInTile%2===0);  // directly center A/B alternating
           }
           else if(isPatternASide){
             usePatternA=!useOpposite;
