@@ -1,6 +1,6 @@
 let rows=6;
 let cols=30;
-let cellSize=20;
+let cellSize=10;
 const uiTop=10;
 const canvasTop=165;
 
@@ -195,20 +195,20 @@ function updateBlendRegionLength(){
 }
 
 function keyPressed(){     // left and right for blend location. up and down for size
-  if(keyCode===LEFT_ARROW){
+  if(keyCode===LEFT_ARROW && !isVertical){
     blendCenterPercent=Math.max(0,blendCenterPercent-10);
     blendCenterInput.value(String(blendCenterPercent));
   }
-  if(keyCode===RIGHT_ARROW){
+  if(keyCode===RIGHT_ARROW && !isVertical){
     blendCenterPercent=Math.min(100,blendCenterPercent+10);
     blendCenterInput.value(String(blendCenterPercent));
   }
-  if(keyCode===UP_ARROW){
+  if(keyCode===UP_ARROW && !isVertical){
     changePatternSize+=1;
     changePatternSizeInput.value(String(changePatternSize));
     updateBlendRegionLength();
   }
-  if(keyCode===DOWN_ARROW){
+  if(keyCode===DOWN_ARROW && !isVertical){
     changePatternSize-=1;
     changePatternSizeInput.value(String(changePatternSize));
     updateBlendRegionLength();
@@ -235,74 +235,166 @@ function draw(){
   let patternBStart=cols-commonW;
   let middleLength=patternBStart-commonW;
   let fullTileCount=Math.floor(middleLength/commonW);   // full tile count and where to put remainder
-  let remainderStart=fullTileCount*commonW;
-  let center=(blendCenterPercent/100)*(fullTileCount-1);   // find blend center
+  let remainder=middleLength%commonW;
+  let leftFullTileCount=Math.floor(fullTileCount/2);
+  let leftFullWidth=leftFullTileCount*commonW;
+  let remainderStart=leftFullWidth;
+  let remainderEnd=remainderStart+remainder;
+  let center=0;
+  if(fullTileCount>0){
+    center=(blendCenterPercent/100)*(fullTileCount-1);   // find blend center
+  }
+  let cellValue=0;
 
-  for(let i=0;i<rows;i++){
-    for(let j=0;j<cols;j++){
-      let cellValue=0;
-
-      if (j<commonW){    // left pattern
-        cellValue=patternA[i][j];
-      }
-      else if (j>=patternBStart){  // right pattern
-        let patternBCol=j-patternBStart;
-        cellValue=patternB[i][patternBCol];
-      }
-      else if (j>=commonW && j<patternBStart){   // blend region
-        let middleCol=j-commonW;
-        let colInTile=middleCol%commonW;
-        let usePatternA=false;
-
-        if(middleCol>=remainderStart){ // remainder always A/B alternating
-          let remainderCol=middleCol-remainderStart;
-          usePatternA=(remainderCol%2===0);
+  if(!isVertical){
+    for(let i=0;i<rows;i++){
+      for(let j=0;j<cols;j++){
+        if (j<commonW){    // left pattern
+          cellValue=patternA[i][j];
         }
-        else{
-          let tileIndex=Math.floor(middleCol/commonW);
-          let distance=Math.floor(Math.abs(tileIndex-center));  // distance from center
-          let isPatternASide=tileIndex<center;
-          let isPatternBSide=tileIndex>center; 
-          let stripeSpacing=2+distance;    // how far from center determines how often to flip. alternating (2) minimum amount
-          let useOpposite=((colInTile+1)%stripeSpacing===0);   // if remainder=0 then switch. dividing by bigger number, less often to switch
-          if(!isPatternASide && !isPatternBSide){
-            usePatternA=(colInTile%2===0);  // directly center A/B alternating
-          }
-          else if(isPatternASide){
-            usePatternA=!useOpposite;
+        else if (j>=patternBStart){  // right pattern
+          let patternBCol=j-patternBStart;
+          cellValue=patternB[i][patternBCol];
+        }
+        else if (j>=commonW && j<patternBStart){   // blend region
+          let middleCol=j-commonW;
+          let usePatternA=false;
+
+          if(middleCol>=remainderStart && middleCol<remainderEnd){ // center remainder always A/B alternating
+            let remainderCol=middleCol-remainderStart;
+            usePatternA=(remainderCol%2===0);
           }
           else{
-            usePatternA=useOpposite;
+            let tileIndex=0;
+            let colInTile=0;
+            if(middleCol<remainderStart){
+              tileIndex=Math.floor(middleCol/commonW);
+              colInTile=middleCol%commonW;
+            }
+            else{
+              let rightCol=middleCol-remainderEnd;
+              tileIndex=leftFullTileCount+Math.floor(rightCol/commonW);
+              colInTile=rightCol%commonW;
+            }
+            let distance=Math.floor(Math.abs(tileIndex-center));  // distance from center
+            let isPatternASide=tileIndex<center;
+            let isPatternBSide=tileIndex>center; 
+            let stripeSpacing=2+distance;    // how far from center determines how often to flip. alternating (2) minimum amount
+            let useOpposite=((colInTile+1)%stripeSpacing===0);   // if remainder=0 then switch. dividing by bigger number, less often to switch
+            if(!isPatternASide && !isPatternBSide){
+              usePatternA=(colInTile%2===0);  // directly center A/B alternating
+            }
+            else if(isPatternASide){
+              usePatternA=!useOpposite;
+            }
+            else{
+              usePatternA=useOpposite;
+            }
+            if(usePatternA){
+              cellValue=patternA[i][colInTile];
+            }
+            else{
+              cellValue=patternB[i][colInTile];
+            }
+          }
+          if(middleCol>=remainderStart && middleCol<remainderEnd){
+            let centerCol=(middleCol-remainderStart)%commonW;
+            if(usePatternA){
+              cellValue=patternA[i][centerCol];
+            }
+            else{
+              cellValue=patternB[i][centerCol];
+            }
           }
         }
-        
-        if(usePatternA){
-          cellValue=patternA[i][colInTile];
+        let x=j*cellSize;
+        let y=i*cellSize;
+        if(cellValue===1){
+          fill(0);
+          stroke(255);
         }
         else{
-          cellValue=patternB[i][colInTile];
+          fill(255);
+          stroke(0);
         }
+        rect(x,y,cellSize,cellSize);
       }
-      let orgX=j*cellSize;
-      let orgY=i*cellSize;
-      let x,y;
-      if(!isVertical){
-        x=orgX;
-        y=orgY;
+    }
+  }
+  else{
+    for(let i=0;i<cols;i++){
+      for(let j=0;j<rows;j++){
+        
+        if (i<commonW){    // top pattern
+          cellValue=patternA[j][i];
+        }
+        else if (i>=patternBStart){  // bottom pattern
+          let patternBCol=i-patternBStart;
+          cellValue=patternB[j][patternBCol];
+        }
+        else if (i>=commonW && i<patternBStart){   // blend region
+          let middleCol=i-commonW;
+          let usePatternA=false;
+
+          if(middleCol>=remainderStart && middleCol<remainderEnd){ 
+            let remainderCol=middleCol-remainderStart;
+            usePatternA=(remainderCol%2===0);
+          }
+          else{
+            let tileIndex=0;
+            let colInTile=0;
+            if(middleCol<remainderStart){
+              tileIndex=Math.floor(middleCol/commonW);
+              colInTile=middleCol%commonW;
+            }
+            else{
+              let rightCol=middleCol-remainderEnd;
+              tileIndex=leftFullTileCount+Math.floor(rightCol/commonW);
+              colInTile=rightCol%commonW;
+            }
+            let distance=Math.floor(Math.abs(tileIndex-center));  
+            let isPatternASide=tileIndex<center;
+            let isPatternBSide=tileIndex>center; 
+            let stripeSpacing=2+distance;    
+            let useOpposite=((colInTile+1)%stripeSpacing===0); 
+            if(!isPatternASide && !isPatternBSide){
+              usePatternA=(colInTile%2===0);
+            }
+            else if(isPatternASide){
+              usePatternA=!useOpposite;
+            }
+            else{
+              usePatternA=useOpposite;
+            }
+            if(usePatternA){
+              cellValue=patternA[j][colInTile];
+            }
+            else{
+              cellValue=patternB[j][colInTile];
+            }
+          }
+          if(middleCol>=remainderStart && middleCol<remainderEnd){
+            let centerCol=(middleCol-remainderStart)%commonW;
+            if(usePatternA){
+              cellValue=patternA[j][centerCol];
+            }
+            else{
+              cellValue=patternB[j][centerCol];
+            }
+          }
+        }
+        let x=j*cellSize;
+        let y=i*cellSize;
+        if(cellValue===1){
+          fill(0);
+          stroke(255);
+        }
+        else{
+          fill(255);
+          stroke(0);
+        }
+        rect(x,y,cellSize,cellSize);
       }
-      else{
-        x=orgY;
-        y=orgX;
-      }
-      if(cellValue===1){
-        fill(0);
-        stroke(255);
-      }
-      else{
-        fill(255);
-        stroke(0);
-      }
-      rect(x,y,cellSize,cellSize);
     }
   }
 }
